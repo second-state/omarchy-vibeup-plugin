@@ -51,8 +51,8 @@ omarchy plugin remove io.github.second-state.vibeup
 ```
 
 This removes only the bar widget. An installed `vibeup` CLI and your VibeKeys
-pairing are untouched; uninstall the CLI with `vibeup uninstall` (or remove
-`~/.cargo/bin/vibeup*`).
+pairing are untouched; uninstall the CLI with `vibeup uninstall self` (or
+remove `~/.cargo/bin/vibeup*`).
 
 ## Dependencies and privileges
 
