@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="58 24.5 396 396" width="1024" height="1024">
+  <!-- 蝾螈 3 号(棱角版):矩形外鳃根部散开(0/30/60)+ 七边形头,竖矩形眼,无鼻无嘴 -->
+  <g fill="#D97757">
+    <rect x="122" y="132" width="90" height="28" transform="rotate(60 167 146)"/>
+    <rect x="71" y="203" width="90" height="28" transform="rotate(30 116 217)"/>
+    <rect x="75" y="286" width="90" height="28"/>
+    <rect x="300" y="132" width="90" height="28" transform="rotate(-60 345 146)"/>
+    <rect x="351" y="203" width="90" height="28" transform="rotate(-30 396 217)"/>
+    <rect x="347" y="286" width="90" height="28"/>
+  </g>
+  <path fill="#D97757" fill-rule="evenodd" d="M140,190 L256,135 L372,190 L395,270 L330,345 L182,345 L117,270 Z M173,217 h32 v64 h-32 Z M307,217 h32 v64 h-32 Z"/>
+</svg>
