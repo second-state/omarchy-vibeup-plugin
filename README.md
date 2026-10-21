@@ -37,12 +37,13 @@ curl -fsSL https://raw.githubusercontent.com/second-state/omarchy-vibeup-plugin/
 - **Open vibeup TUI** launches `vibeup tui` in a new terminal
   (via `omarchy-launch-terminal`).
 - **Install vibeup** runs the installer stored in this repository
-  (`install.sh`, a vendored copy of the upstream
+  (`install.sh`, a hardened copy of the upstream
   [`second-state/vibeup`](https://github.com/second-state/vibeup) installer)
-  inside the panel with every line of output visible. Nothing is downloaded or
-  executed until you click the button, and the CLI lands in `~/.cargo/bin` as
-  upstream `install.sh` does. When upstream's installer changes, the vendored
-  copy is updated in a new plugin commit.
+  inside the panel with every line of output visible. The installer is pinned
+  to one reviewed vibeup release, and the downloaded binary is verified
+  against a sha256 digest pinned in this repository before anything executes
+  it. Nothing is downloaded until you click the button; when vibeup ships a
+  new release, the pin and digests are updated in a new plugin commit.
 
 ## Remove
 

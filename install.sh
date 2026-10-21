@@ -1,60 +1,55 @@
 #!/usr/bin/env bash
-# vibeup installer: downloads a prebuilt binary from GitHub Releases into ~/.cargo/bin.
+# VibeUp plugin's vendored installer for the vibeup CLI.
 #
-# Usage:
-#   ./install.sh              # latest stable release
-#   ./install.sh v0.1.0-rc.1  # a specific release tag (e.g. a prerelease)
+# Hardened copy of the upstream second-state/vibeup install.sh:
+#   - pinned to one reviewed release (VERSION below) — no "latest" mode
+#   - the downloaded binary is verified against the pinned sha256 digest
+#     before its first execution
+#   - no source-build fallback
 #
-# Override the install dir with VIBEUP_INSTALL_DIR (default: ~/.cargo/bin).
-# Set VIBEUP_FALLBACK_BUILD=1 to build from the local checkout with
-# `cargo install --path .` when the download fails (used by local dev; off by
-# default for end users).
+# When vibeup ships a new release, update VERSION and the digest table in a
+# new plugin commit so the marketplace re-review covers the new digests.
 set -euo pipefail
 
 REPO="second-state/vibeup"
-VERSION="${1:-latest}"
+VERSION="v0.1.3"
 INSTALL_DIR="${VIBEUP_INSTALL_DIR:-$HOME/.cargo/bin}"
-FALLBACK_BUILD="${VIBEUP_FALLBACK_BUILD:-0}"
+NAME="vibeup"
 
-# 下载失败时的兜底:开关打开 && 本地是 vibeup checkout(有 Cargo.toml)→ 就地 cargo install。
-fallback_build() {
-  if [ "$FALLBACK_BUILD" = "1" ] && [ -f Cargo.toml ]; then
-    echo "download failed; falling back to cargo install --path ." >&2
-    exec cargo install --force --path .
-  fi
-  return 1
-}
-
-# --- detect platform -> release asset name (must match .github/workflows/release.yml) ---
+# --- detect platform -> release asset + pinned digest (sha256) ---
 OS="$(uname -s)"
 ARCH="$(uname -m)"
 ASSET=""
-NAME="vibeup"
+DIGEST=""
 case "$OS" in
   Linux)
     case "$ARCH" in
-      x86_64 | amd64) ASSET="vibeup-linux-x64" ;;
-      aarch64 | arm64) ASSET="vibeup-linux-arm64" ;;
+      x86_64 | amd64)
+        ASSET="vibeup-linux-x64"
+        DIGEST="ca70f35495427f5af76a4cbfeeaed437bdb45bb9c003e01a686d888f56c6eabb" ;;
+      aarch64 | arm64)
+        ASSET="vibeup-linux-arm64"
+        DIGEST="e18626b30c701c15a2e2475ab585798a424fe4c30ffec155ded1af3311835a8e" ;;
       *)
-        echo "error: unsupported Linux arch: $ARCH (prebuilts: x86_64, aarch64)" >&2
+        echo "error: unsupported Linux arch: $ARCH (pinned prebuilts: x86_64, aarch64)" >&2
         exit 1
         ;;
     esac
     ;;
   Darwin)
     case "$ARCH" in
-      arm64 | aarch64) ASSET="vibeup-macos-arm64" ;;
+      arm64 | aarch64)
+        ASSET="vibeup-macos-arm64"
+        DIGEST="56db423604005f01ef66fcfcc73b35f956102a3909632cd023e078bdb51f37f6" ;;
       *)
-        echo "error: unsupported macOS arch: $ARCH (prebuilts: arm64 only)" >&2
+        echo "error: unsupported macOS arch: $ARCH (pinned prebuilts: arm64 only)" >&2
         exit 1
         ;;
     esac
     ;;
   MINGW* | MSYS* | CYGWIN*)
-    # Windows 走独立的安装方式(PowerShell 等后续再做);Git Bash 下 ln 是 copy,
-    # 覆盖正在运行的 exe 会有占用问题,这里不装。
-    echo "error: Windows is not supported by install.sh yet — download vibeup-windows-x64.exe from:" >&2
-    echo "  https://github.com/${REPO}/releases/latest" >&2
+    echo "error: Windows is not supported by install.sh — download vibeup-windows-x64.exe from:" >&2
+    echo "  https://github.com/${REPO}/releases" >&2
     exit 1
     ;;
   *)
@@ -63,38 +58,36 @@ case "$OS" in
     ;;
 esac
 
-# --- download url (releases/latest excludes prereleases; pass a tag for those) ---
-if [ "$VERSION" = "latest" ]; then
-  URL="https://github.com/${REPO}/releases/latest/download/${ASSET}"
-else
-  URL="https://github.com/${REPO}/releases/download/${VERSION}/${ASSET}"
-fi
+URL="https://github.com/${REPO}/releases/download/${VERSION}/${ASSET}"
 
-command -v curl >/dev/null 2>&1 || {
-  echo "error: curl is required" >&2
-  exit 1
-}
+command -v curl >/dev/null 2>&1 || { echo "error: curl is required" >&2; exit 1; }
+command -v sha256sum >/dev/null 2>&1 || { echo "error: sha256sum is required" >&2; exit 1; }
 
 mkdir -p "$INSTALL_DIR"
 TMP="$(mktemp)"
 trap 'rm -f "$TMP"' EXIT
 
 echo "Downloading $URL"
-if ! curl -fL --progress-bar -o "$TMP" "$URL"; then
-  fallback_build || { echo "error: download failed" >&2; exit 1; }
-fi
-chmod 755 "$TMP"
+curl -fL --progress-bar -o "$TMP" "$URL"
 
-# 版本号直接问二进制(--version 输出如 "vibeup 0.1.0")。
+# Verify the pinned digest BEFORE anything executes the download.
+if ! printf '%s  %s\n' "$DIGEST" "$TMP" | sha256sum -c --status; then
+  echo "error: sha256 mismatch for $ASSET — does not match the pinned digest:" >&2
+  sha256sum "$TMP" >&2
+  exit 1
+fi
+echo "sha256 verified"
+
+# 版本号直接问二进制(--version 输出如 "vibeup 0.1.3")。
 BINVER="$("$TMP" --version 2>/dev/null | awk '{print $2}')"
 if [ -z "$BINVER" ]; then
   echo "error: could not read version from the downloaded binary" >&2
   exit 1
 fi
 
-# 带版本号命名(vibeup-0.1.0),再软链 vibeup -> 它。升级 = 下新版本 + 改软链;
-# 避免直接 cp 覆盖正在运行的二进制(ln 原子替换,进程握住的旧 inode 不受影响)。
-VERSIONED="${NAME%-*}-$BINVER"
+# 带版本号命名(vibeup-0.1.3),再软链 vibeup -> 它。升级 = 下新版本 + 改软链;
+# ln 原子替换,进程握住的旧 inode 不受影响。
+VERSIONED="${NAME}-${BINVER}"
 
 # 已装同一版本且软链完好 → 无事可做,提前退出(保持输出干净)。
 if [ -x "$INSTALL_DIR/$VERSIONED" ] && [ "$(readlink "$INSTALL_DIR/$NAME" 2>/dev/null)" = "$INSTALL_DIR/$VERSIONED" ]; then
@@ -108,10 +101,10 @@ ln -sfn "$INSTALL_DIR/$VERSIONED" "$INSTALL_DIR/$NAME"
 
 echo "Installed: $INSTALL_DIR/$VERSIONED -> $NAME ($BINVER)"
 
-# --- 旧版本清理:安装完成后扫描 vibeup-<数字>* 的历史版本文件,询问是否删除(默认 N)。
+# --- 旧版本清理:扫描 vibeup-<数字>* 的历史版本文件,询问是否删除(默认 N)。
 # rm 对正在运行的二进制是安全的(只是解除目录链接,进程握住的 inode 不受影响)。
 OLD_FOUND=()
-for old in "$INSTALL_DIR/${NAME%-*}"-[0-9]*; do
+for old in "$INSTALL_DIR/${NAME}"-[0-9]*; do
   [ -f "$old" ] || continue
   [ "$old" = "$INSTALL_DIR/$VERSIONED" ] && continue
   OLD_FOUND+=("$old")
