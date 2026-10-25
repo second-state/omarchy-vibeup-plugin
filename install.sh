@@ -12,7 +12,7 @@
 set -euo pipefail
 
 REPO="second-state/vibeup"
-VERSION="v0.1.3"
+VERSION="v0.2.0"
 INSTALL_DIR="${VIBEUP_INSTALL_DIR:-$HOME/.cargo/bin}"
 NAME="vibeup"
 
@@ -26,10 +26,10 @@ case "$OS" in
     case "$ARCH" in
       x86_64 | amd64)
         ASSET="vibeup-linux-x64"
-        DIGEST="ca70f35495427f5af76a4cbfeeaed437bdb45bb9c003e01a686d888f56c6eabb" ;;
+        DIGEST="049f1e5dc573f4d3c5229c8f5f9ea33e1b0693e97aa4c9f9a621db60383448f5" ;;
       aarch64 | arm64)
         ASSET="vibeup-linux-arm64"
-        DIGEST="e18626b30c701c15a2e2475ab585798a424fe4c30ffec155ded1af3311835a8e" ;;
+        DIGEST="9787992ce0d6bc06587dd08524bb81dee21ee597332a48330f64d4570bf433e5" ;;
       *)
         echo "error: unsupported Linux arch: $ARCH (pinned prebuilts: x86_64, aarch64)" >&2
         exit 1
@@ -40,7 +40,7 @@ case "$OS" in
     case "$ARCH" in
       arm64 | aarch64)
         ASSET="vibeup-macos-arm64"
-        DIGEST="56db423604005f01ef66fcfcc73b35f956102a3909632cd023e078bdb51f37f6" ;;
+        DIGEST="8a762535f79d13cf621c45bf70dd8f54f7d3f46cbc158ec5060a12d57dd2d297" ;;
       *)
         echo "error: unsupported macOS arch: $ARCH (pinned prebuilts: arm64 only)" >&2
         exit 1
