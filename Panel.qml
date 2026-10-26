@@ -75,14 +75,15 @@ Panel {
   // -2 = not started, -1 = running, >= 0 = finished with that exit code
   property int installExit: -2
 
-  // The installer is a vendored copy of vibeup's install.sh, served from THIS
-  // repository so the reviewed source is exactly what runs (the marketplace
-  // baseline exempts downloads scoped to the submission's own repository).
-  // The full URL must stay inside this one string literal: the baseline
-  // scanner extracts command strings from QML and can only apply that
-  // exemption when it can see the URL itself.
-  readonly property string installUrl:
-    "https://raw.githubusercontent.com/second-state/omarchy-vibeup-plugin/main/install.sh"
+  // The installer is the vendored install.sh shipped inside this plugin's own
+  // directory: the exact file the marketplace reviewed is the file that runs,
+  // with no network fetch of the script itself. The script then downloads the
+  // pinned vibeup release and verifies it against the digests pinned in this
+  // repository before executing it.
+  readonly property string bundledInstaller: {
+    var url = Qt.resolvedUrl("./install.sh").toString()
+    return url.indexOf("file://") === 0 ? decodeURIComponent(url.slice(7)) : url
+  }
 
   function startInstall() {
     root.installLog = ""
@@ -96,10 +97,7 @@ Panel {
 
   Process {
     id: installProcess
-    // Full URL inline (not concatenated) so the baseline scanner sees the
-    // submission-repository scope and applies its own-repository exemption.
-    command: ["bash", "-c",
-      "curl -fsSL https://raw.githubusercontent.com/second-state/omarchy-vibeup-plugin/main/install.sh | bash"]
+    command: ["bash", root.bundledInstaller]
     stdout: SplitParser { onRead: line => root.appendLog(line) }
     stderr: SplitParser { onRead: line => root.appendLog(line) }
     onExited: function (exitCode) {

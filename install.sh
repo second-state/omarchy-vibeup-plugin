@@ -70,12 +70,14 @@ trap 'rm -f "$TMP"' EXIT
 echo "Downloading $URL"
 curl -fL --progress-bar -o "$TMP" "$URL"
 
-# Verify the pinned digest BEFORE anything executes the download.
+# Verify the pinned digest BEFORE anything executes the download, then make
+# the file executable (mktemp creates it mode 600).
 if ! printf '%s  %s\n' "$DIGEST" "$TMP" | sha256sum -c --status; then
   echo "error: sha256 mismatch for $ASSET — does not match the pinned digest:" >&2
   sha256sum "$TMP" >&2
   exit 1
 fi
+chmod 755 "$TMP"
 echo "sha256 verified"
 
 # 版本号直接问二进制(--version 输出如 "vibeup 0.1.3")。
