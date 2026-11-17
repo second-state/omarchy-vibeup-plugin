@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.second-state.vibeup",
   "name": "VibeUp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Second State",
   "license": "MIT",
   "description": "VibeUp in your bar: connection status for the VibeKeys keyboard, a one-click vibeup CLI installer, companion package versions, and a shortcut into the vibeup TUI.",
